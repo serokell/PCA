@@ -19,7 +19,6 @@ source-repository head
 
 library
   exposed-modules:
-      PCA.GPExample
       PCA.GaussianProcess
       PCA.PCA
       PCA.PPCA

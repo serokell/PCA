@@ -21,23 +21,23 @@ import PCA.Types (InputObservations(..), Matrix, Vector)
 import PCA.Util
 
 data GaussianProcess a = GaussianProcess
-    { -- | we define gaussian process by some kernel function
+    { -- | we define the gaussian process by some kernel function
       _kernelGP :: Vector D a -> Vector D a -> Matrix D a
     }
 
 data GPTrainingData a = GPTrainingData
-    { _inputTrain  :: Vector D a  -- ^ input training data
-    , _outputTrain :: Vector D a  -- ^ output training data
+    { _inputTrain  :: Vector D a  -- ^ an input training data
+    , _outputTrain :: Vector D a  -- ^ an output training data
     }
 
 makeLenses ''GaussianProcess
 makeLenses ''GPTrainingData
 
 newtype PosteriorSample a = PosteriorSample
-    { unSample :: Matrix D a  -- ^ posterior sample
+    { unSample :: Matrix D a  -- ^ an posterior sample
     }
 
--- | Constraint kind required to getting a posterior sample by a given GP
+-- | The constraint kind required for getting a posterior sample by a given GP
 type GPConstraint a =
   ( Field a
   , Random a
@@ -46,53 +46,52 @@ type GPConstraint a =
   , Eq a
   )
 
--- | Main GP function: get a posterior sample by some kernel function, input observations and training data
+-- | The Main GP function: get a posterior sample by some kernel function, input observations and the training data
 
 gpToPosteriorSample
-  :: forall a g.
-  GPConstraint a
+  :: GPConstraint a
   => InputObservations a        -- ^ input observations
-  -> GaussianProcess a          -- ^ kernel function
-  -> GPTrainingData a           -- ^ training data
-  -> Int                        -- ^ number of samples
-  -> Maybe (PosteriorSample a)  -- ^ posterior functional prior
+  -> GaussianProcess a          -- ^ a kernel function
+  -> GPTrainingData a           -- ^ a training data
+  -> Int                        -- ^ the number of samples
+  -> Maybe (PosteriorSample a)  -- ^ a posterior functional prior
 gpToPosteriorSample (InputObservations observe@(ADelayed (Z :. len) _)) gP trainingData sampleNumber = do
-  -- | kernel applied to input test points (so-called K_ss)
+  -- | The kernel applied to input test points (so-called K_ss)
   let covarianceMatrix = kernel observe observe
 
-  -- | kernel applied to input training points (so-called K)
+  -- | The kernel applied to input training points (so-called K)
   let trainingKernel = kernel inputTrain' inputTrain'
 
-  -- | Cholesky decomposition applied to kernel of training points (:), so-called L
+  -- | The Cholesky decomposition applied to kernel of training points (:), so-called L
   let cholK = cholSH $ trainingKernel +^
                 (smap (* 0.00005) . identD . size . extent $ inputTrain')
 
-  -- | covariance between test points and input training points (so-called K_s)
+  -- | a covariance between test points and input training points (so-called K_s)
   let testPointMean = kernel observe inputTrain'
 
-  -- | (roots of L * x = K_s)
+  -- | (the roots of L * x = K_s)
   cholKSolve <- delay <$> linearSolveS cholK testPointMean
 
-  -- | solve linear system for output training points
+  -- | Here we solve  alinear system for output training points
   cholKSolveOut <- delay <$> linearSolveS cholK (transposeMatrix $ toMatrix outputTrain' len)
 
-  -- | compute mean
+  -- | Here we compute a mean
   let mean = (transposeMatrix cholKSolveOut) `mulD` cholKSolve
 
-  -- | posterior
+  -- | A posterior
   let postF' = cholSH $
                      covarianceMatrix +^
                      ((smap (* 1.0e-6) (identD len)) -^
                      (transposeMatrix cholKSolve) `mulD` cholKSolve)
 
-  -- | posterior sample
-  return $ (PosteriorSample $ mean +^ (functionalPrior postF' (mkStdGen 1) sampleNumber))
+  -- | A posterior sample
+  return $ (PosteriorSample $ mean +^ (functionalPrior postF' sampleNumber))
     where
        kernel = gP ^. kernelGP
        inputTrain' = trainingData ^. inputTrain
        outputTrain' = trainingData ^. outputTrain
        mulD m n = delay $ m `mulS` n
-       functionalPrior matrix@(ADelayed (Z :. rows :. cols) _) gen sampleNumber =
+       functionalPrior matrix@(ADelayed (Z :. rows :. _) _) numberSample =
          delay $ matrix `mulS` randomCoeffs
          where
-           randomCoeffs = randomMatrixD (mkStdGen (-4)) (rows, sampleNumber)
+           randomCoeffs = randomMatrixD (mkStdGen (-4)) (rows, numberSample)
