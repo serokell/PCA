@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-type-defaults #-}
 module PCA.Util
        ( deleteRows
        , diag
@@ -113,7 +114,7 @@ updateMatrix
     :: (Array r DIM2 a -> Array r DIM2 a)
     -> Matrix r a
     -> Matrix r a
-updateMatrix f = f 
+updateMatrix f = f
 
 transposeMatrix
     :: Matrix D a
@@ -125,7 +126,7 @@ updateMatrix2
     -> Matrix r a
     -> Matrix r a
     -> Matrix r a
-updateMatrix2 f = f 
+updateMatrix2 f = f
 
 toLatentSpacePoints
     :: forall a. Matrix D a
@@ -199,8 +200,8 @@ listEquality
     -> Bool
 listEquality [] = True
 listEquality lst =
-  let first = head lst
-  in all (\x -> x == first) lst
+  let frst = head lst
+  in all (\x -> x == frst) lst
 
 toMatrix
     :: Source r1 a

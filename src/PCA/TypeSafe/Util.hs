@@ -90,7 +90,7 @@ vecToMat
   -> DimMatrix D n One a
 vecToMat (DimVector vec) =
   DimMatrix $
-  fromFunction (Z :. dim :. 1) (\(Z :. a :. b) -> index vec (Z :. a))
+  fromFunction (Z :. dim :. 1) (\(Z :. a :. _) -> index vec (Z :. a))
   where
     dim = natToInt $ demote @n :: Int
 
@@ -180,7 +180,7 @@ getFirstColumns
   :: forall toSave y1 x1. (SingI toSave, (toSave <= x1) ~ 'True)
   => DimMatrix D y1 x1 Double
   -> DimMatrix D y1 toSave Double
-getFirstColumns (DimMatrix m@(ADelayed (Z :. y :. x) f)) =
+getFirstColumns (DimMatrix (ADelayed (Z :. y :. _) f)) =
   let desiredColumns = natToInt $ fromSing (Sing :: Sing toSave)
   in DimMatrix $ ADelayed (Z :. y :. desiredColumns) f
 

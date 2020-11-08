@@ -115,10 +115,12 @@ emStepsMissed learnMatrix@(ADelayed (Z :. _ :. n) _) initMatrix@(ADelayed (Z :. 
             mP i = mapDiagonal (+ oldVariance) $ (transpose (oldWP i)) `mulS` (oldWP i)
             invMP i = delay $ invS $ mP i
             expXi i = delay $ (delay $ (delay $ invMP i) `mulS` (transpose (oldWP i))) `mulS` (yPi i -^ muP i)
-        in stepTwo ([yPi, expXi, invMP], unknownIndices, oldW) oldVariance iteration
+        in stepTwo ((yPi, expXi, invMP), unknownIndices, oldW) oldVariance iteration
 
-      stepTwo :: (HasCallStack) => ([Int -> Matrix D Double], Int -> [Int], Matrix D Double) -> Double -> Int -> (Matrix D Double, Double, Double, Maybe (Matrix D Double))
-      stepTwo ([yP, expXi, invMP], unknownIndices, oldW) oldVariance iteration =
+      stepTwo :: (HasCallStack) => ((Int -> Matrix D Double, Int -> Matrix D Double, Int -> Matrix D Double),
+                                     Int -> [Int],
+                                     Matrix D Double) -> Double -> Int -> (Matrix D Double, Double, Double, Maybe (Matrix D Double))
+      stepTwo ((yP, expXi, invMP), unknownIndices, oldW) oldVariance iteration =
         let expX = foldl1 (\acc i -> acc ++ i) $ U.map expXi [0..(n-1)]
             newMu = extend (Any :. (1 :: Int)) $ meanColumnWithNan $ (learnMatrix -^ (oldW `mulS` expX))
 

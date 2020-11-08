@@ -38,24 +38,24 @@ makePCA
 makePCA desiredDimensions input =
   let _inputData = input
          -- get dimension
-      (Z :. yInp :. _) = extent input                                          
+      (Z :. yInp :. _) = extent input
       (meanVec, _covariance) = meanCovS input
       _meanMatrix = extend (Z :. yInp :. All) meanVec
-      adjustInput'@(ADelayed (Z :. y1 :. x1) _) = input -^ _meanMatrix
+      adjustInput'@(ADelayed (Z :. _ :. _) _) = input -^ _meanMatrix
       (_eigenValues, eigenVec) = eigSH _covariance
-      eigenVecD@(ADelayed (Z :. y :. x) f) = transpose eigenVec        
+      eigenVecD@(ADelayed (Z :. y :. x) f) = transpose eigenVec
         -- leave only n desired eigenvectors
-      eigenVectors' =                                                        
+      eigenVectors' =
         if desiredDimensions >= y
         then eigenVecD
         else ADelayed (Z :. desiredDimensions :. x) f
         -- colunmns are eigenvectors
-      _eigenVectors = transpose eigenVectors'                      
+      _eigenVectors = transpose eigenVectors'
         -- data in new eigenvectors space
-      finalData' = runIdentity $ eigenVectors' `mulP` transpose adjustInput' 
+      finalData' = runIdentity $ eigenVectors' `mulP` transpose adjustInput'
       _finalData = transpose finalData'
         -- restore to the original space
       restoredDataWOMean = transpose $ pinvS eigenVectors' `mul` finalData'
-        -- add mean  
-      _restoredData = restoredDataWOMean +^ _meanMatrix              
+        -- add mean
+      _restoredData = restoredDataWOMean +^ _meanMatrix
   in PCA{..}
